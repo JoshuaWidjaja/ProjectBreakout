@@ -1,8 +1,9 @@
 import pygame
-from PaddleV2 import Paddle
-from BallV2 import GameBall
-from BrickV2 import Brick
+from PaddleV3 import Paddle
+from BallV3 import GameBall
+from BrickV3 import Brick
 from random import randint
+import time
 
 print(pygame.ver)
 
@@ -38,7 +39,7 @@ def runGame():
     gameball = GameBall(GAMEBALL_COLOR, 490, (SCREEN_RESOLUTION[1] - 70), 6.5, SCREEN_RESOLUTION[0])
     spriteList.add(gameball)
 
-    #Creating bricks for the game
+    #Creating bricks for the game, each for loop represents 3 rows of bricks addded
     brickY = 10
     for i in range(3):
         brickX = 100
@@ -67,51 +68,54 @@ def runGame():
 
     #Main Game loop
     while isRunning:
-            gameClock.tick(90) 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    isRunning = False
-                elif event.type == new_game_start_event:
-                    pass
-                elif event.type == ongoing_game_event:
-                    gameball.rect.x += gameball.gameBallSpeed[0]
-                    gameball.rect.y += gameball.gameBallSpeed[1]
-                    if gameball.rect.x >= SCREEN_RESOLUTION[0] - gameball.radius*2:
-                        gameball.rect.x = SCREEN_RESOLUTION[0] - gameball.radius*2
-                        gameball.gameBallSpeed[0] = -gameball.gameBallSpeed[0]
-                    if gameball.rect.y <= 0:
-                        gameball.rect.y = 0
-                        gameball.adjustYSpeed()
-                    if gameball.rect.x <= 0:
-                        gameball.rect.x = 0
-                        gameball.gameBallSpeed[0] = -gameball.gameBallSpeed[0]
-                    if gameball.rect.y >= (SCREEN_RESOLUTION[1] - 10):
-                        livesCount -= 1
-                        gameball.gameBallSpeed = [0,0]
-                        paddle.resetPosition(460, 650)
-                        gameball.resetPosition(490, (SCREEN_RESOLUTION[1] - 70))
-                    if pygame.sprite.collide_rect(paddle, gameball):
-                        gameball.adjustXSpeed()
-                        gameball.adjustYSpeed()
-                    for brick in brickList:
-                         if pygame.sprite.collide_rect(gameball, brick):
-                            gameball.adjustYSpeed()
-                            brick.kill()
-                            playerScore += 10
-            if livesCount == 0:
-                font = pygame.font.Font(None, 100)
-                endText = font.render("GAME OVER", 1, FONT_COLOR)
-                surface.blit(endText, (400,400))
-                pygame.display.flip()
-                pygame.time.wait(6000)
+        gameClock.tick(90) 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 isRunning = False
-            redrawObjects(surface,spriteList,playerScore, livesCount)
-            keyHandler(paddle, gameball)
-    pygame.quit()
+            elif event.type == new_game_start_event:
+                pass
+            elif event.type == ongoing_game_event:
+                gameball.rect.x += gameball.gameBallSpeed[0]
+                gameball.rect.y += gameball.gameBallSpeed[1]
+                #Checks if gameball touches any of the borders of the screen
+                if gameball.rect.x >= SCREEN_RESOLUTION[0] - gameball.radius*2:
+                    gameball.rect.x = SCREEN_RESOLUTION[0] - gameball.radius*2
+                    gameball.gameBallSpeed[0] = -gameball.gameBallSpeed[0]
+                if gameball.rect.y <= 0:
+                    gameball.rect.y = 0
+                    gameball.AdjustYSpeed()
+                if gameball.rect.x <= 0:
+                    gameball.rect.x = 0
+                    gameball.gameBallSpeed[0] = -gameball.gameBallSpeed[0]
+                if gameball.rect.y >= (SCREEN_RESOLUTION[1] - 10):
+                    livesCount -= 1
+                    gameball.gameBallSpeed = [0,0]
+                    paddle.ResetPosition(460, 650)
+                    gameball.ResetPosition(490, (SCREEN_RESOLUTION[1] - 70))
+                #Checks if gameball collides with paddle, or any of the bricks
+                if pygame.sprite.collide_rect(paddle, gameball):
+                    gameball.AdjustXSpeed()
+                    gameball.AdjustYSpeed()
+                for brick in brickList:
+                    if pygame.sprite.collide_rect(gameball, brick):
+                        gameball.AdjustYSpeed()
+                        brick.kill()
+                        playerScore += 10
+                        #If no more bricks exist, game is ended
+                        if not brickList:
+                            EndGame("YOU WIN", surface, isRunning)
+        #If the player runs out of lives game is ended
+        if livesCount == 0:
+            RedrawObjects(surface,spriteList,playerScore, livesCount)
+            EndGame("GAME OVER", surface, isRunning)
+        #Updated each time the game loops to make sure game is displayed correctly and correct keypresses are handled
+        RedrawObjects(surface,spriteList,playerScore, livesCount)
+        KeyHandler(paddle, gameball)
+   
+###### HELPER FUNCTIONS ######
 
-
-
-def redrawObjects(surface,spriteList,playerScore, playerLives):     
+#Displays the game with the proper information each loop
+def RedrawObjects(surface,spriteList,playerScore, playerLives):     
     surface.fill(pygame.Color(5,5,5))
     spriteList.update()
     font = pygame.font.Font(None, 28)
@@ -122,18 +126,29 @@ def redrawObjects(surface,spriteList,playerScore, playerLives):
     spriteList.draw(surface)
     pygame.display.flip()
 
-def keyHandler(paddle,ball):
+#Handles the player's keypresses each loop
+def KeyHandler(paddle,ball):
     keys = pygame.key.get_pressed()
     if keys[pygame.K_SPACE] and ball.gameBallSpeed == [0,0]:
-        ball.initialBounce()
+        ball.InitialBounce()
         pygame.time.set_timer(ongoing_game_event,100)
     if keys[pygame.K_LEFT]:
-        paddle.moveLeft(5)
-        ball.moveLeft(5)
+        paddle.MoveLeft(5)
+        ball.MoveLeft(5)
     if keys[pygame.K_RIGHT]:
-        paddle.moveRight(5)
-        ball.moveRight(5)
+        paddle.MoveRight(5)
+        ball.MoveRight(5)
 
+#Ends the game when proper conditions are met, displaying the text in displayText
+def EndGame(displayText, gameSurface, isRunning):
+    font = pygame.font.Font(None,100)
+    winText = font.render(displayText, 1, FONT_COLOR)
+    gameSurface.blit(winText, (400,400))
+    pygame.display.flip()
+    time.sleep(5)
+    isRunning = False
+    pygame.quit()
+    
 if __name__ == "__main__":
     pygame.init()
     runGame()

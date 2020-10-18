@@ -1,5 +1,5 @@
 import pygame
-
+#Class for the bricks within the game
 
 class Brick(pygame.sprite.Sprite):
     def __init__(self, color, xPoint, yPoint, width, height):
